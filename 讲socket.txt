@@ -1,0 +1,29 @@
+WebSocket 通信原理概览
+在我们的后端和前端里，WebSocket 负责“实时进度 + 结果推送”。关键位置如下：
+1. 后端 backend/src/websocket/server.js
+创建 WebSocketServer：
+  const WebSocket = require('ws');  this.wss = new WebSocket.Server({ server, path: '/ws' });
+每个客户端连接后会分配 clientId、加入 this.clients，并发一条 connection 消息。
+监听 message：
+  handleMessage(ws, clientId, data) {    switch (data.type) {      case 'bazi_calculate':        this.handleBaziCalculation(ws, clientId, data.payload);        break;      // 还有 ping / subscribe 等    }  }
+handleBaziCalculation 做的事情：
+推送 bazi_progress（0→20→…→95）模拟阶段任务；
+调用 BaziService.calculateBazi 得到真实八字结果；
+推送 bazi_result（包含全量数据），如失败则推 bazi_error。
+2. 前端 8Char-Uni-App/src/utils/websocket.js
+封装 WebSocketClient，用于在 uni-app 中管理连接：自动重连、事件监听、心跳等。
+initWebSocket(url) / getWebSocketClient() 提供连接实例。
+发送计算请求 wsClient.calculateBazi(datetime, gender, sect) 实际上就是发 { type: 'bazi_calculate', payload: {...} }。
+通过 on('bazi_progress', handler) / on('bazi_result', handler) 等监听后端推送，在 UI 里更新进度条、展示结果。
+3. Vue 页面示例：src/components/WebSocketDemo.vue
+引入 calculateBaziWithWS（封装在 src/api/websocket.js），当用户点击“开始计算”：
+确保 WS 已连接；
+调用 calculateBaziWithWS(data, onProgress, onComplete, onError)；
+进度、结果、错误都会传回页面显示。
+整个流程
+前端 WebSocketClient 连到 ws://你的服务器/ws；
+发消息 { type: 'bazi_calculate', payload: {...} }；
+后端 handleBaziCalculation 发送多个 bazi_progress；
+计算完毕推送 bazi_result；
+前端收到数据后更新 UI。
+如果接下来你想把更多“专业细盘”内容通过 WebSocket 推送，也可以扩展 handleBaziCalculation（例如新增 dayun、gods 等字段），或者新增消息类型都可以。需要我帮你对接某个页面或做性能优化，再告诉我。

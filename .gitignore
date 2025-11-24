@@ -16,6 +16,8 @@ unpackage/
 .env.*.local
 **/.env
 **/.env.local
+# 但保留 .env.example
+!.env.example
 
 # IDE
 .idea/

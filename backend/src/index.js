@@ -1,4 +1,5 @@
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -6,6 +7,7 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 // 中间件配置
@@ -34,6 +36,11 @@ app.use('/api/8char', baziRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/record', recordRoutes);
 
+// WebSocket 服务器
+const WebSocketServer = require('./websocket/server');
+const wss = new WebSocketServer(server);
+app.locals.wss = wss; // 将 WebSocket 服务器挂载到 app 上，供路由使用
+
 // 健康检查
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -58,8 +65,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 服务器运行在端口 ${PORT}`);
+server.listen(PORT, () => {
+  console.log(`🚀 HTTP 服务器运行在端口 ${PORT}`);
+  console.log(`🔌 WebSocket 服务器运行在 ws://localhost:${PORT}/ws`);
   console.log(`📝 环境: ${process.env.NODE_ENV || 'development'}`);
 });
 
