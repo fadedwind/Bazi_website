@@ -21,6 +21,7 @@
       <basic v-else-if="tabsOption.current === 1"></basic>
       <major v-else-if="tabsOption.current === 2"></major>
       <live v-else-if="tabsOption.current === 3"></live>
+      <ai-chat v-else-if="tabsOption.current === 4"></ai-chat>
     </scroll-view>
   </view>
 </template>
@@ -32,6 +33,7 @@ import Basic from './components/index/basic/basic.vue'
 import Live from './components/index/live/live.vue'
 import Detail from './components/index/detail/detail.vue';
 import Major from './components/index/major/major.vue'
+import AiChat from './components/index/ai-chat/ai-chat.vue'
 import {toHome} from "@/utils/router";
 import {useDetailStore} from "@/store/detail";
 
@@ -41,7 +43,8 @@ const tabsOption = reactive({
     {key: 0, name: '命主信息',},
     {key: 1, name: '基本命盘',},
     {key: 2, name: '专业细盘',},
-    {key: 3, name: '在线批命',}
+    {key: 3, name: '在线批命',},
+    {key: 4, name: 'AI论命',}
   ],
   current: 0
 });
