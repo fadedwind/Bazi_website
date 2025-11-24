@@ -7,9 +7,15 @@ require('dotenv').config();
 
 class AIService {
   constructor() {
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error('DEEPSEEK_API_KEY 未配置，请在 .env 文件中设置 DEEPSEEK_API_KEY');
+    }
+
     this.openai = new OpenAI({
       baseURL: 'https://api.deepseek.com',
-      apiKey: process.env.DEEPSEEK_API_KEY || 'sk-d6868c7ecf424bfda5a52a79c568ca28',
+      apiKey: apiKey,
     });
   }
 

@@ -2,7 +2,19 @@ const express = require('express');
 const router = express.Router();
 const AIService = require('../services/aiService');
 
-const aiService = new AIService();
+// 延迟初始化，确保环境变量已加载
+let aiService = null;
+function getAIService() {
+  if (!aiService) {
+    try {
+      aiService = new AIService();
+    } catch (error) {
+      console.error('❌ AI 服务初始化失败:', error.message);
+      throw error;
+    }
+  }
+  return aiService;
+}
 
 // 生成默认提示词
 router.post('/generate-prompt', async (req, res) => {
@@ -47,7 +59,7 @@ router.post('/chat', async (req, res) => {
       });
     }
 
-    const response = await aiService.chat(message, conversationHistory);
+    const response = await getAIService().chat(message, conversationHistory);
     
     res.json({
       code: 200,
@@ -59,9 +71,13 @@ router.post('/chat', async (req, res) => {
     });
   } catch (error) {
     console.error('AI 对话失败:', error);
+    // 如果是配置错误，返回更友好的提示
+    const errorMessage = error.message.includes('DEEPSEEK_API_KEY') 
+      ? 'AI 服务未配置，请联系管理员' 
+      : error.message || 'AI 对话失败';
     res.json({
       code: 500,
-      msg: error.message || 'AI 对话失败',
+      msg: errorMessage,
       data: null
     });
   }
@@ -85,7 +101,7 @@ router.post('/chat-stream', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    await aiService.chatStream(message, conversationHistory, (chunk) => {
+    await getAIService().chatStream(message, conversationHistory, (chunk) => {
       res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
     });
 
@@ -93,7 +109,11 @@ router.post('/chat-stream', async (req, res) => {
     res.end();
   } catch (error) {
     console.error('AI 流式对话失败:', error);
-    res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+    // 如果是配置错误，返回更友好的提示
+    const errorMessage = error.message.includes('DEEPSEEK_API_KEY') 
+      ? 'AI 服务未配置，请联系管理员' 
+      : error.message || 'AI 对话失败';
+    res.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
     res.end();
   }
 });
