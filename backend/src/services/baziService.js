@@ -4,6 +4,13 @@
  */
 const { Solar, LunarUtil, EightChar } = require('lunar-javascript');
 
+const PILLAR_FIELD = ['year', 'month', 'day', 'time'];
+const ELEMENT_LABELS = ['金', '木', '水', '火', '土'];
+const GENERATE_MAP = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' };
+const PRODUCED_BY_MAP = Object.fromEntries(Object.entries(GENERATE_MAP).map(([key, value]) => [value, key]));
+const CONTROL_MAP = { 木: '土', 火: '金', 土: '水', 金: '木', 水: '火' };
+const CONTROLLED_BY_MAP = Object.fromEntries(Object.entries(CONTROL_MAP).map(([key, value]) => [value, key]));
+
 class BaziService {
   /**
    * 计算八字信息
@@ -139,7 +146,7 @@ class BaziService {
       const gods = this.getGods(lunar, bazi);
 
       // 获取五行信息
-      const element = this.getElementInfo(pillars, bottomHide);
+      const element = this.getElementInfo(pillars, bottomHide, dayGan);
 
       // 获取大运信息（简化版）
       const dayun = this.getDayunInfo(lunar, gender, bazi);
@@ -395,35 +402,109 @@ class BaziService {
   /**
    * 获取五行信息
    */
-  static getElementInfo(pillars, bottomHide) {
-    const wuxing = { 金: 0, 木: 0, 水: 0, 火: 0, 土: 0 };
-    
-    // 统计天干五行
-    Object.values(pillars).forEach(pillar => {
-      const ganWuxing = LunarUtil.WU_XING_GAN[pillar.gan];
-      if (ganWuxing) wuxing[ganWuxing]++;
+  static getElementInfo(pillars, bottomHide, dayGan) {
+    const baseCounts = this.initElementCounter();
+    const includeCounts = this.initElementCounter();
+
+    const addCount = (counter, element) => {
+      if (element && counter[element] !== undefined) {
+        counter[element]++;
+      }
+    };
+
+    PILLAR_FIELD.forEach(field => {
+      const pillar = pillars[field];
+      addCount(baseCounts, LunarUtil.WU_XING_GAN[pillar.gan]);
+      addCount(includeCounts, LunarUtil.WU_XING_GAN[pillar.gan]);
+      addCount(baseCounts, LunarUtil.WU_XING_ZHI[pillar.zhi]);
+      addCount(includeCounts, LunarUtil.WU_XING_ZHI[pillar.zhi]);
     });
 
-    // 统计地支五行
-    Object.values(pillars).forEach(pillar => {
-      const zhiWuxing = LunarUtil.WU_XING_ZHI[pillar.zhi];
-      if (zhiWuxing) wuxing[zhiWuxing]++;
-    });
-
-    // 统计藏干五行
     Object.values(bottomHide).forEach(hides => {
       hides.forEach(gan => {
-        const ganWuxing = LunarUtil.WU_XING_GAN[gan];
-        if (ganWuxing) wuxing[ganWuxing]++;
+        addCount(includeCounts, LunarUtil.WU_XING_GAN[gan]);
       });
     });
 
+    const dayElement = LunarUtil.WU_XING_GAN[dayGan];
+    const shishenMap = this.buildTenGodMap(dayElement);
+
     return {
-      relation: Object.entries(wuxing).map(([name, count]) => ({ name, count })),
-      pro_decl: ['', '', '', '', ''], // 需要更复杂的计算
-      include: [],
-      ninclude: []
+      relation: ELEMENT_LABELS.map(label => shishenMap[label] || ''),
+      pro_decl: this.buildMonthStrength(pillars?.month?.zhi),
+      include: { list: this.buildElementList(includeCounts, shishenMap) },
+      ninclude: { list: this.buildElementList(baseCounts, shishenMap) }
     };
+  }
+
+  static initElementCounter() {
+    return ELEMENT_LABELS.reduce((acc, label) => {
+      acc[label] = 0;
+      return acc;
+    }, {});
+  }
+
+  static buildElementList(counter, shishenMap) {
+    const totals = ELEMENT_LABELS.map(label => counter[label] || 0);
+    const max = Math.max(...totals, 1);
+    return ELEMENT_LABELS.map(label => {
+      const total = counter[label] || 0;
+      return {
+        element: label,
+        total,
+        sacle: total === 0 ? 0 : Math.round((total / max) * 100),
+        shishen: shishenMap[label] || ''
+      };
+    });
+  }
+
+  static buildTenGodMap(dayElement) {
+    if (!dayElement) {
+      return ELEMENT_LABELS.reduce((acc, label) => {
+        acc[label] = '';
+        return acc;
+      }, {});
+    }
+
+    const order = ['木', '火', '土', '金', '水'];
+    const dayIndex = order.indexOf(dayElement);
+    return ELEMENT_LABELS.reduce((acc, label) => {
+      const targetIndex = order.indexOf(label);
+      if (targetIndex === -1) {
+        acc[label] = '';
+        return acc;
+      }
+      const diff = (targetIndex - dayIndex + 5) % 5;
+      const map = {
+        0: '比劫',
+        1: '食伤',
+        2: '财才',
+        3: '官杀',
+        4: '印绶'
+      };
+      acc[label] = map[diff] || '';
+      return acc;
+    }, {});
+  }
+
+  static buildMonthStrength(monthZhi) {
+    const monthElement = LunarUtil.WU_XING_ZHI[monthZhi];
+    if (!monthElement) return [];
+
+    const child = GENERATE_MAP[monthElement];
+    const mother = PRODUCED_BY_MAP[monthElement];
+    const controlledBy = CONTROLLED_BY_MAP[monthElement];
+    const iControl = CONTROL_MAP[monthElement];
+
+    const list = [
+      { element: monthElement, state: '旺' },
+      { element: child, state: '相' },
+      { element: mother, state: '休' },
+      { element: controlledBy, state: '囚' },
+      { element: iControl, state: '死' }
+    ].filter(item => !!item.element);
+
+    return list.map(item => `${item.element}${item.state}`);
   }
 
   /**

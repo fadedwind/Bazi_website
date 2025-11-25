@@ -29,8 +29,8 @@
             <text></text>
           </u-line-progress>
         </view>
-        <view class="yx-text-weight-b u-text-right" style="width: 200rpx;">
-          {{ item.total + '个 ' + detailStore.element.relation[index] }}
+        <view class="yx-text-weight-b u-text-right" style="width: 220rpx;">
+          {{ item.total + '个 ' + (item.shishen || detailStore.element.relation?.[index] || '') }}
         </view>
       </view>
     </template>
@@ -51,7 +51,7 @@ const colors = ELEMENT.colors;
 const isInclude = ref(false)
 
 const els = computed(()=>{
-  const key = isInclude.value?"include":"ninclude"
-  return detailStore.element[key].list
+  const key = isInclude.value ? "include" : "ninclude";
+  return detailStore.element?.[key]?.list || [];
 })
 </script>
