@@ -2,7 +2,7 @@
  * 八字排盘服务
  * 使用 lunar-javascript 库实现真实的八字计算
  */
-const { Solar, LunarUtil } = require('lunar-javascript');
+const { Solar, LunarUtil, EightChar } = require('lunar-javascript');
 
 class BaziService {
   /**
@@ -79,6 +79,7 @@ class BaziService {
 
       // 获取十神关系
       const dayGan = pillars.day.gan;
+      // getDayGanIndex() 返回的是十天干循环索引（0-9），直接使用
       const dayGanIndex = pillars.day.ganIndex;
       const shishen = {
         year: this.getShiShen(dayGan, dayGanIndex, pillars.year.gan, pillars.year.ganIndex),
@@ -96,21 +97,27 @@ class BaziService {
       };
 
       // 计算副星（藏干十神）- 每个地支的藏干对应的十神
+      // 需要将GAN数组索引转换为十天干循环索引（0-9）
       const assiste = {
         year: bottomHide.year.map(gan => {
-          const ganIndex = LunarUtil.GAN.indexOf(gan);
+          const ganArrayIndex = LunarUtil.GAN.indexOf(gan);
+          // GAN数组索引转十天干循环索引：GAN[0]='', GAN[1]='甲'=0, GAN[2]='乙'=1, ...
+          const ganIndex = ganArrayIndex > 0 ? ganArrayIndex - 1 : -1;
           return ganIndex >= 0 ? this.getShiShen(dayGan, dayGanIndex, gan, ganIndex) : '';
         }),
         month: bottomHide.month.map(gan => {
-          const ganIndex = LunarUtil.GAN.indexOf(gan);
+          const ganArrayIndex = LunarUtil.GAN.indexOf(gan);
+          const ganIndex = ganArrayIndex > 0 ? ganArrayIndex - 1 : -1;
           return ganIndex >= 0 ? this.getShiShen(dayGan, dayGanIndex, gan, ganIndex) : '';
         }),
         day: bottomHide.day.map(gan => {
-          const ganIndex = LunarUtil.GAN.indexOf(gan);
+          const ganArrayIndex = LunarUtil.GAN.indexOf(gan);
+          const ganIndex = ganArrayIndex > 0 ? ganArrayIndex - 1 : -1;
           return ganIndex >= 0 ? this.getShiShen(dayGan, dayGanIndex, gan, ganIndex) : '';
         }),
         time: bottomHide.time.map(gan => {
-          const ganIndex = LunarUtil.GAN.indexOf(gan);
+          const ganArrayIndex = LunarUtil.GAN.indexOf(gan);
+          const ganIndex = ganArrayIndex > 0 ? ganArrayIndex - 1 : -1;
           return ganIndex >= 0 ? this.getShiShen(dayGan, dayGanIndex, gan, ganIndex) : '';
         })
       };
@@ -136,6 +143,22 @@ class BaziService {
 
       // 获取大运信息（简化版）
       const dayun = this.getDayunInfo(lunar, gender, bazi);
+
+      // 计算星运（trend）- 日主在地支的十二长生
+      const trend = {
+        year: this.getChangSheng(dayGan, dayGanIndex, pillars.year.zhiIndex),
+        month: this.getChangSheng(dayGan, dayGanIndex, pillars.month.zhiIndex),
+        day: this.getChangSheng(dayGan, dayGanIndex, pillars.day.zhiIndex),
+        time: this.getChangSheng(dayGan, dayGanIndex, pillars.time.zhiIndex)
+      };
+
+      // 计算自坐（selfsit）- 天干在地支的十二长生
+      const selfsit = {
+        year: this.getChangSheng(pillars.year.gan, pillars.year.ganIndex, pillars.year.zhiIndex),
+        month: this.getChangSheng(pillars.month.gan, pillars.month.ganIndex, pillars.month.zhiIndex),
+        day: this.getChangSheng(pillars.day.gan, pillars.day.ganIndex, pillars.day.zhiIndex),
+        time: this.getChangSheng(pillars.time.gan, pillars.time.ganIndex, pillars.time.zhiIndex)
+      };
 
       // 构建返回数据（匹配前端期望的格式）
       return {
@@ -167,6 +190,8 @@ class BaziService {
         gods: gods,
         dayun: dayun,
         start_tend: this.getStartTend(lunar, gender),
+        trend: trend,      // 星运（日主在地支的十二长生）
+        selfsit: selfsit,  // 自坐（天干在地支的十二长生）
         start: {
           main: main,      // 主星（天干十神）
           assiste: assiste // 副星（地支十神）
@@ -196,6 +221,38 @@ class BaziService {
       9: '正印'
     };
     return shishenMap[diff] || '';
+  }
+
+  /**
+   * 获取十二长生
+   * @param {string} gan - 天干
+   * @param {number} ganIndex - 天干索引
+   * @param {number} zhiIndex - 地支索引
+   * @returns {string} 十二长生名称
+   */
+  static getChangSheng(gan, ganIndex, zhiIndex) {
+    // 十二长生偏移表（与前端保持一致）
+    const CHANG_SHENG_OFFSET = {
+      甲: 1, 丙: 10, 戊: 10, 庚: 7, 壬: 4,
+      乙: 6, 丁: 9, 己: 9, 辛: 0, 癸: 3
+    };
+    
+    const offset = CHANG_SHENG_OFFSET[gan] || 0;
+    // 根据天干索引的奇偶性决定加减
+    let index = offset + (ganIndex % 2 === 0 ? zhiIndex : -zhiIndex);
+    
+    // 处理索引越界
+    if (index >= 12) {
+      index -= 12;
+    }
+    if (index < 0) {
+      index += 12;
+    }
+    
+    // 十二长生数组
+    const CHANG_SHENG = ['长生', '沐浴', '冠带', '临官', '帝旺', '衰', '病', '死', '墓', '绝', '胎', '养'];
+    
+    return CHANG_SHENG[index] || '';
   }
 
   /**

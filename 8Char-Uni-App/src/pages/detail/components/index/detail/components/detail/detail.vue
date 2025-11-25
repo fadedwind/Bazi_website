@@ -22,11 +22,16 @@ import {useDetailStore} from "@/store/detail";
 const detailStore = useDetailStore();
 
 const detail = computed(() => {
+  // 获取四柱的星运和自坐
+  const trendDay = detailStore.trend?.day || '';
+  const selfsitDay = detailStore.selfsit?.day || '';
+  
   return [
     [`生肖：${detailStore.zodiac}`, `性别：${detailStore.gender===1 ? '男' : '女'}`],
     [`星座：${detailStore.constellation}`, `日空：${detailStore.empty.day}`],
     [`胎元：${detailStore.embryo[0]?.[0]} (${detailStore.embryo[0]?.[1]})`, `胎息：${detailStore.embryo[1]?.[0]} (${detailStore.embryo[1]?.[1]})`],
     [`命宫：${detailStore.embryo[2]?.[0]} (${detailStore.embryo[2]?.[1]})`, `身宫：${detailStore.embryo[3]?.[0]} (${detailStore.embryo[3]?.[1]})`],
+    [`星运：${trendDay}`, `自坐：${selfsitDay}`],
     [`${detailStore.festival.pre.label}：${detailStore.festival.pre.time}`, `${detailStore.festival.next.label}：${detailStore.festival.next.time}`]
   ]
 });
