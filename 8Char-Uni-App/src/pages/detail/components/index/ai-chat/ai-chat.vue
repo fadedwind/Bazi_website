@@ -39,6 +39,7 @@
             :auto-height="true"
             :show-confirm-bar="false"
             @confirm="sendMessage"
+            @input="onInputChange"
           />
           <view class="input-actions">
             <u-button 
@@ -70,11 +71,12 @@ import { useDetailStore } from '@/store/detail';
 import { generateAIPrompt, chatWithAI } from '@/api/ai';
 
 const detailStore = useDetailStore();
-const messages = ref([]);
-const inputMessage = ref('');
+// 从 store 中恢复聊天记录和状态
+const messages = ref(detailStore.aiChat?.messages || []);
+const inputMessage = ref(detailStore.aiChat?.inputMessage || '');
 const sending = ref(false);
 const scrollTop = ref(0);
-const defaultPromptShown = ref(false);
+const defaultPromptShown = ref(detailStore.aiChat?.defaultPromptShown || false);
 
 // 加载默认提示词
 async function loadDefaultPrompt() {
@@ -94,6 +96,9 @@ async function loadDefaultPrompt() {
     if (res && res.prompt) {
       inputMessage.value = res.prompt;
       defaultPromptShown.value = true;
+      // 保存状态到 store
+      detailStore.aiChat.inputMessage = res.prompt;
+      detailStore.aiChat.defaultPromptShown = true;
     }
     
     uni.hideLoading();
@@ -117,9 +122,13 @@ async function sendMessage() {
     content: message,
     timestamp: new Date()
   });
+  
+  // 保存消息到 store
+  detailStore.aiChat.messages = [...messages.value];
 
   // 清空输入框
   inputMessage.value = '';
+  detailStore.aiChat.inputMessage = '';
   sending.value = true;
 
   // 滚动到底部
@@ -154,6 +163,8 @@ async function sendMessage() {
         loading: false,
         timestamp: new Date(response.timestamp)
       };
+      // 保存消息到 store
+      detailStore.aiChat.messages = [...messages.value];
     } else {
       throw new Error('AI 返回数据格式错误');
     }
@@ -165,6 +176,8 @@ async function sendMessage() {
       loading: false,
       timestamp: new Date()
     };
+    // 保存消息到 store
+    detailStore.aiChat.messages = [...messages.value];
     uni.showToast({
       title: 'AI 分析失败',
       icon: 'none'
@@ -181,15 +194,26 @@ async function scrollToBottom() {
   scrollTop.value = 99999;
 }
 
-// 组件挂载时自动加载默认提示词
+// 输入框内容变化时保存到store
+function onInputChange(e) {
+  detailStore.aiChat.inputMessage = inputMessage.value;
+}
+
+// 组件挂载时，如果已有聊天记录则不自动加载提示词
 onMounted(async () => {
   // 延迟加载，确保数据已准备好
   await nextTick();
-  setTimeout(() => {
-    if (detailStore.top && detailStore.top.year && !defaultPromptShown.value) {
+  // 只有在没有聊天记录且没有显示过提示词时才自动加载
+  if (detailStore.top && detailStore.top.year && 
+      messages.value.length === 0 && 
+      !defaultPromptShown.value) {
+    setTimeout(() => {
       loadDefaultPrompt();
-    }
-  }, 300);
+    }, 300);
+  } else if (messages.value.length > 0) {
+    // 如果有聊天记录，滚动到底部
+    await scrollToBottom();
+  }
 });
 </script>
 

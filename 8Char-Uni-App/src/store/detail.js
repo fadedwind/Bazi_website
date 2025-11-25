@@ -46,7 +46,13 @@ export const useDetailStore = defineStore('detail', {
             embryo: [new Array(3).fill([])],
             tb_relation: {top:[],bottom:[]},
             gods: [],
-            start_tend:DEFAULT_TEMPLATE_FILL
+            start_tend:DEFAULT_TEMPLATE_FILL,
+            // AI聊天记录
+            aiChat: {
+                messages: [],
+                defaultPromptShown: false,
+                inputMessage: ''
+            }
         };
     },
     actions: {
