@@ -1,7 +1,7 @@
 <template>
   <view style="height: 100vh;">
     <view id="header" style="position: fixed;width: 100%;">
-      <yx-nav-header></yx-nav-header>
+      <yx-nav-header :show-back="true"></yx-nav-header>
       <header-view></header-view>
       <u-subsection
           v-model="tabsOption.current"
