@@ -25,3 +25,4 @@ export function chatWithAI(message, conversationHistory = []) {
   }, APP_API);
 }
 
+
