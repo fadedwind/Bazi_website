@@ -218,12 +218,37 @@ export function getWebSocketClient(url = null) {
  * @returns {Promise<WebSocketClient>}
  */
 export function initWebSocket(url = null) {
-  const wsUrl = url || (import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws');
+  // 如果提供了 URL，直接使用
+  if (url) {
+    wsClient = new WebSocketClient(url);
+    return wsClient.connect().then(() => wsClient);
+  }
+  
+  // 如果配置了环境变量，使用环境变量
+  if (import.meta.env.VITE_WS_URL) {
+    wsClient = new WebSocketClient(import.meta.env.VITE_WS_URL);
+    return wsClient.connect().then(() => wsClient);
+  }
+  
+  // 否则，自动使用当前域名（同域部署）
+  let wsUrl = 'ws://localhost:3000/ws'; // 默认值（开发环境）
+  if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    wsUrl = `${protocol}//${host}/ws`;
+  }
+  
   wsClient = new WebSocketClient(wsUrl);
   return wsClient.connect().then(() => wsClient);
 }
 
 export default WebSocketClient;
+
+
+
+
+
+
 
 
 

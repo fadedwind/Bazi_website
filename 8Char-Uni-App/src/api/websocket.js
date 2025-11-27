@@ -12,8 +12,8 @@ let wsClient = null;
  */
 export async function initWS() {
   if (!wsClient) {
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws';
-    wsClient = await initWebSocket(wsUrl);
+    // 使用 initWebSocket 的自动检测逻辑
+    wsClient = await initWebSocket();
   }
   return wsClient;
 }
@@ -87,6 +87,12 @@ export function closeWS() {
     wsClient = null;
   }
 }
+
+
+
+
+
+
 
 
 

@@ -27,3 +27,9 @@ export function chatWithAI(message, conversationHistory = []) {
 
 
 
+
+
+
+
+
+

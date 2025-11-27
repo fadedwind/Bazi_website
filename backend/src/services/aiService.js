@@ -10,9 +10,16 @@ class AIService {
     const apiKey = process.env.DEEPSEEK_API_KEY;
     
     if (!apiKey) {
-      throw new Error('DEEPSEEK_API_KEY 未配置，请在 .env 文件中设置 DEEPSEEK_API_KEY');
+      // 不抛出错误，而是标记为未配置，允许其他功能正常工作
+      this.isConfigured = false;
+      this.apiKey = null;
+      this.openai = null;
+      console.warn('⚠️  DEEPSEEK_API_KEY 未配置，AI 功能将不可用。如需使用 AI 功能，请在 .env 文件中设置 DEEPSEEK_API_KEY');
+      return;
     }
 
+    this.isConfigured = true;
+    this.apiKey = apiKey;
     this.openai = new OpenAI({
       baseURL: 'https://api.deepseek.com',
       apiKey: apiKey,
@@ -61,6 +68,11 @@ class AIService {
    * @returns {Promise<string>} AI 回复
    */
   async chat(userMessage, conversationHistory = []) {
+    // 检查是否已配置
+    if (!this.isConfigured || !this.openai) {
+      throw new Error('AI 服务未配置，请在 .env 文件中设置 DEEPSEEK_API_KEY');
+    }
+
     try {
       // 构建消息历史
       const messages = [
@@ -97,6 +109,11 @@ class AIService {
    * @returns {Promise<string>} 完整回复
    */
   async chatStream(userMessage, conversationHistory = [], onChunk) {
+    // 检查是否已配置
+    if (!this.isConfigured || !this.openai) {
+      throw new Error('AI 服务未配置，请在 .env 文件中设置 DEEPSEEK_API_KEY');
+    }
+
     try {
       const messages = [
         {

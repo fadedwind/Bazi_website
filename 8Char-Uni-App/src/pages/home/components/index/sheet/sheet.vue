@@ -70,6 +70,7 @@ import {onLoad} from "@dcloudio/uni-app";
 import {Solar} from "lunar-javascript";
 import {deleteLocalStorage, getLocalStorage, setLocalStorage} from "@/utils/cache";
 import {GetBook, GetInfo} from "@/api/default";
+import {calculateBaziWithWS} from "@/api/websocket";
 import {useDetailStore} from "@/store/detail";
 import {firstStringToUpperCase, timeFormat} from "@/utils/transform";
 import {toDetail} from "@/utils/router";
@@ -203,26 +204,82 @@ async function Sumbit() {
     sect: form.sect,
   }
 
+  // 显示初始加载提示
   uni.showLoading({
-    title: "请求数据中！"
+    title: "开始计算..."
   })
 
   detailStore.set(payload)
   setLocalStorage("info", JSON.stringify(payload));
-  try{
-    await GetInfo(detailStore.defaultPayload).then(res=>detailStore.set(res)).catch(()=>{throw 0});
-    await GetBook(detailStore.defaultPayload).then(res=>bookStore.set(res)).catch(() =>{throw 1});
-  }catch (e) {
-    const msg = ["获取命盘信息失败！","获取命盘古籍失败！"];
+
+  try {
+      // 使用 WebSocket 计算八字（实时进度）
+      const wsData = {
+        datetime: uni.$u.date(datetime, "yyyy-mm-dd hh:MM:ss"),
+        gender: form.gender,
+        sect: form.sect
+      };
+
+      await calculateBaziWithWS(
+        wsData,
+        // 进度回调 - 更新加载提示
+        (progress, message) => {
+          uni.hideLoading();
+          uni.showLoading({
+            title: `${message} (${progress}%)`
+          });
+        },
+        // 完成回调 - 处理返回数据
+        async (data) => {
+          uni.hideLoading();
+          uni.showLoading({
+            title: "正在获取古籍..."
+          });
+
+          // WebSocket 返回的数据格式：data.result 包含完整的八字数据
+          // 与 HTTP API 返回的格式一致，直接使用
+          if (data && data.result) {
+            // WebSocket 返回格式：{ result: baziData }
+            detailStore.set(data.result);
+          } else if (data) {
+            // 如果直接返回八字数据（兼容处理）
+            detailStore.set(data);
+          } else {
+            throw new Error('返回数据格式错误');
+          }
+
+          // 获取古籍信息（继续使用 HTTP）
+          try {
+            await GetBook(detailStore.defaultPayload)
+              .then(res => bookStore.set(res))
+              .catch(() => { throw 1 });
+          } catch (e) {
+            uni.hideLoading();
+            setTimeout(() => {
+              uni.$u.toast("获取命盘古籍失败！", 3000);
+            }, 800);
+            return;
+          }
+
+          uni.hideLoading();
+          tendStore.pull(payload);
+          toDetail();
+        },
+        // 错误回调
+        (error) => {
+          uni.hideLoading();
+          setTimeout(() => {
+            uni.$u.toast(`获取命盘信息失败：${error}`, 3000);
+          }, 800);
+        }
+      );
+
+  } catch (error) {
     uni.hideLoading();
-    setTimeout(()=>{
-      msg[e] && uni.$u.toast(msg[e],3000)
-    },800)
-    return;
+    setTimeout(() => {
+      uni.$u.toast("获取命盘信息失败！", 3000);
+    }, 800);
   }
-  uni.hideLoading();
-  tendStore.pull(payload);
-  toDetail()
 }
 </script>
 
