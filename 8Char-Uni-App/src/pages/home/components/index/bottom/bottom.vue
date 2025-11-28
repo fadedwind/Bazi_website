@@ -4,7 +4,7 @@
       <template v-for="bitem in friendList">
         <text class="yx-text-weight-b u-p-t-10 u-m-b-20 u-font-38">关于项目</text>
         <u-row>
-          <u-col v-for="item in bitem" :span="3">
+          <u-col v-for="item in bitem" :span="6">
             <view class="u-flex u-text-center u-row-center u-p-t-14">
               <u-image
                   :height="100"
