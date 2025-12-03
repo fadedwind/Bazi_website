@@ -155,18 +155,32 @@ async function sendMessage() {
     // 调用 AI API
     const response = await chatWithAI(message, conversationHistory);
     
-    if (response && response.response) {
+    // 调试日志
+    console.log('AI API 返回数据:', response);
+    
+    // 处理返回数据：后端返回格式为 { response: string, timestamp: string }
+    let aiContent = null;
+    if (typeof response === 'string') {
+      // 如果直接返回字符串（兼容处理）
+      aiContent = response;
+    } else if (response && typeof response === 'object') {
+      // 标准格式：{ response: string, timestamp: string }
+      aiContent = response.response || response.content || response.message;
+    }
+    
+    if (aiContent && typeof aiContent === 'string') {
       // 更新 AI 消息
       messages.value[aiMessageIndex] = {
         role: 'assistant',
-        content: response.response,
+        content: aiContent,
         loading: false,
-        timestamp: new Date(response.timestamp)
+        timestamp: new Date(response?.timestamp || new Date().toISOString())
       };
       // 保存消息到 store
       detailStore.aiChat.messages = [...messages.value];
     } else {
-      throw new Error('AI 返回数据格式错误');
+      console.error('AI 返回数据格式错误:', response);
+      throw new Error(`AI 返回数据格式错误：${JSON.stringify(response)}`);
     }
   } catch (error) {
     console.error('AI 对话失败:', error);

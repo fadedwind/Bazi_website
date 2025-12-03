@@ -61,11 +61,17 @@ router.post('/chat', async (req, res) => {
 
     const response = await getAIService().chat(message, conversationHistory);
     
+    // 确保 response 是字符串
+    if (typeof response !== 'string') {
+      console.error('AI 返回格式异常:', typeof response, response);
+      throw new Error('AI 服务返回数据格式错误');
+    }
+    
     res.json({
       code: 200,
       msg: 'success',
       data: {
-        response,
+        response: response,
         timestamp: new Date().toISOString()
       }
     });
