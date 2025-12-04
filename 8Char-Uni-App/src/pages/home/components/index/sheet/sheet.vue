@@ -248,19 +248,18 @@ async function Sumbit() {
             throw new Error('返回数据格式错误');
           }
 
-          // 获取古籍信息（继续使用 HTTP）
-          try {
-            await GetBook(detailStore.defaultPayload)
-              .then(res => bookStore.set(res))
-              .catch(() => { throw 1 });
-          } catch (e) {
-            uni.hideLoading();
-            setTimeout(() => {
-              uni.$u.toast("获取命盘古籍失败！", 3000);
-            }, 800);
-            return;
-          }
+          // 获取古籍信息（继续使用 HTTP，失败不影响排盘）
+          // 使用异步方式，不阻塞排盘流程
+          GetBook(detailStore.defaultPayload)
+            .then(res => {
+              bookStore.set(res);
+            })
+            .catch(err => {
+              // 古籍获取失败不影响排盘，只记录错误
+              console.warn('获取命盘古籍失败，但不影响排盘:', err);
+            });
 
+          // 无论古籍是否获取成功，都继续排盘流程
           uni.hideLoading();
           tendStore.pull(payload);
           toDetail();

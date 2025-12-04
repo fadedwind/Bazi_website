@@ -3,6 +3,8 @@
  * 使用 DeepSeek API 进行八字分析
  */
 const OpenAI = require('openai');
+const https = require('https');
+const http = require('http');
 require('dotenv').config();
 
 class AIService {
