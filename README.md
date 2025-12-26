@@ -2,15 +2,9 @@
 
 ---
 
-## P1: 组员分工
+## P1:技术栈
 
-### 项目成员及职责
-- **前端开发**：负责 Uni-APP 客户端开发、UI/UX 设计、WebSocket 客户端封装
-- **后端开发**：负责 Node.js 服务端开发、WebSocket 服务器实现、数据库设计
-- **算法实现**：负责八字计算逻辑、lunar-javascript 库集成、十神关系计算
-- **测试与部署**：负责功能测试、性能优化、服务器部署
-
-### 技术栈分工
+### 技术栈
 - **前端技术栈**：Uni-APP、Vue 3、Pinia、Vite
 - **后端技术栈**：Node.js、Express、WebSocket (ws)、MySQL
 - **核心库**：lunar-javascript（农历转换与八字计算）
